@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>2D ဒိုင် စာရင်းကိုင် & Live အရှုံးအမြတ် တွက်စက် (Google Sheets Sync)</title>
+ <style>
+ :root {
+ --bg-color: #0f172a;
+ --card-bg: #1e293b;
+ --text-color: #f8fafc;
+ --accent: #3b82f6;
+ --profit: #10b981;
+ --loss: #ef4444;
+ --warning: #f59e0b;
+ --border: #334155;
+ }
+
+ * {
+ box-sizing: border-box;
+ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+ }
+
+ body {
+ background-color: var(--bg-color);
+ color: var(--text-color);
+ margin: 0;
+ padding: 15px;
+ }
+
+ .container {
+ max-width: 1200px;
+ margin: 0 auto;
+ }
+
+ h2, h3 {
+ margin-top: 0;
+ color: #e2e8f0;
+ }
+
+ /* Dashboard Summary Cards */
+ .summary-grid {
+ display: grid;
+ grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+ gap: 12px;
+ margin-bottom: 20px;
+ }
+
+ .stat-card {
+ background: var(--card-bg);
+ padding: 15px;
+ border-radius: 10px;
+ border: 1px solid var(--border);
+ }
+
+ .stat-label {
+ font-size: 13px;
+ color: #94a3b8;
+ margin-bottom: 5px;
+ }
+
+ .stat-value {
+ font-size: 22px;
+ font-weight: bold;
+ }
+
+ .text-profit { color: var(--profit); }
+ .text-loss { color: var(--loss); }
+ .text-warning { color: var(--warning); }
+
+ /* Settings & Controls */
+ .panel {
+ background: var(--card-bg);
+ padding: 15px;
+ border-radius: 10px;
+ border: 1px solid var(--border);
+ margin-bottom: 20px;
+ }
+
+ .settings-row {
+ display: flex;
+ flex-wrap: wrap;
+ gap: 15px;
+ align-items: flex-end;
+ }
+
+ .input-group {
+ display: flex;
+ flex-direction: column;
+ gap: 5px;
+ }
+
+ .input-group label {
+ font-size: 13px;
+ color: #cbd5e1;
+ }
+
+ input, select {
+ background: #0f172a;
+ border: 1px solid var(--border);
+ color: white;
+ padding: 8px 12px;
+ border-radius: 6px;
+ font-size: 15px;
+ }
+
+ input:focus {
+ outline: none;
+ border-color: var(--accent);
+ }
+
+ button {
+ background: var(--accent);
+ color: white;
+ border: none;
+ padding: 9px 16px;
+ border-radius: 6px;
+ cursor: pointer;
+ font-weight: bold;
+ font-size: 14px;
+ transition: opacity 0.2s;
+ }
+
+ button:hover { opacity: 0.9; }
+ .btn-danger { background: var(--loss); }
+ .btn-warning { background: var(--warning); color: #000; }
+ .btn-secondary { background: #475569; }
+ .btn-success { background: var(--profit); color: #000; }
+
+ /* Quick Buttons */
+ .quick-btns {
+ display: flex;
+ flex-wrap: wrap;
+ gap: 8px;
+ margin-top: 12px;
+ }
+
+ .quick-btns button {
+ padding: 6px 12px;
+ font-size: 13px;
+ background: #334155;
+ }
+
+ .quick-btns button:hover {
+ background: var(--accent);
+ }
+
+ /* 00-99 Grid */
+ .grid-header {
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+ flex-wrap: wrap;
+ gap: 10px;
+ margin-bottom: 12px;
+ }
+
+ .number-grid {
+ display: grid;
+ grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+ gap: 8px;
+ }
+
+ .num-box {
+ background: #0f172a;
+ border: 1px solid var(--border);
+ border-radius: 8px;
+ padding: 8px;
+ text-align: center;
+ position: relative;
+ transition: transform 0.1s;
+ }
+
+ .num-box.has-bet {
+ border-color: var(--accent);
+ }
+
+ .num-box.over-limit {
+ border: 2px solid var(--loss);
+ background: rgba(239, 68, 68, 0.12);
+ }
+
+ .num-title {
+ font-size: 18px;
+ font-weight: bold;
+ color: #f8fafc;
+ }
+
+ .num-bet {
+ font-size: 12px;
+ color: #94a3b8;
+ margin: 3px 0;
+ }
+
+ .num-pl {
+ font-size: 13px;
+ font-weight: bold;
+ }
+
+ /* Over Limit Modal / Section */
+ .ka-list {
+ background: #0f172a;
+ padding: 12px;
+ border-radius: 8px;
+ font-family: monospace;
+ font-size: 14px;
+ max-height: 200px;
+ overflow-y: auto;
+ white-space: pre-wrap;
+ }
+
+ /* History Table */
+ .table-wrapper {
+ overflow-x: auto;
+ max-height: 300px;
+ overflow-y: auto;
+ border: 1px solid var(--border);
+ border-radius: 8px;
+ }
+
+ table {
+ width: 100%;
+ border-collapse: collapse;
+ background: #0f172a;
+ font-size: 14px;
+ }
+
+ th, td {
+ padding: 10px 12px;
+ text-align: left;
+ border-bottom: 1px solid var(--border);
+ }
+
+ th {
+ background: #1e293b;
+ color: #cbd5e1;
+ position: sticky;
+ top: 0;
+ }
+
+ .btn-sm {
+ padding: 4px 8px;
+ font-size: 12px;
+ }
+
+ @media (max-width: 600px) {
+ .number-grid {
+ grid-template-columns: repeat(4, 1fr);
+ }
+ }
+ </style>
+</head>
+<body>
+
+<div class="container">
+ <h2>📊 2D ဒိုင် Live အရှုံး/အမြတ် တွက်စက် (Google Sheets Sync)</h2>
+
+ <!-- Settings Panel -->
+ <div class="panel">
+ <div class="settings-row">
+ <div class="input-group">
+ <label>လျော်ဆ (ဥပမာ- 80 / 85 / 90)</label>
+ <input type="number" id="payoutRate" value="85" onchange="updateSettings()">
+ </div>
+ <div class="input-group">
+ <label>ကော်မရှင် (%)</label>
+ <input type="number" id="commissionRate" value="0" onchange="updateSettings()">
+ </div>
+ <div class="input-group">
+ <label>တစ်ကွက် အများဆုံးခံနိုင်ရည် (Limit)</label>
+ <input type="number" id="maxLimit" value="50000" onchange="updateSettings()">
+ </div>
+ <button class="btn-danger" onclick="clearAllData()">စာရင်းအားလုံးဖျက်မည်</button>
+ </div>
+ </div>
+
+ <!-- Live Summary Dashboard -->
+ <div class="summary-grid">
+ <div class="stat-card">
+ <div class="stat-label">စုစုပေါင်း ရငွေ (Total In)</div>
+ <div class="stat-value" id="totalIn">0</div>
+ </div>
+ <div class="stat-card">
+ <div class="stat-label">ကော်မရှင် နုတ်ပြီး အသားတင်</div>
+ <div class="stat-value" id="netIn">0</div>
+ </div>
+ <div class="stat-card">
+ <div class="stat-label">အများဆုံး မြတ်နိုင်ခြေ (Max Profit)</div>
+ <div class="stat-value text-profit" id="maxProfit">0</div>
+ </div>
+ <div class="stat-card">
+ <div class="stat-label">အများဆုံး စိုက်လျော်ရနိုင်ခြေ (Max Risk)</div>
+ <div class="stat-value text-loss" id="maxLoss">0</div>
+ </div>
+ </div>
+
+ <!-- Bet Entry Panel -->
+ <div class="panel">
+ <h3>✍️ စာရင်းသွင်းရန်</h3>
+ <div class="settings-row">
+ <div class="input-group">
+ <label>ဂဏန်း (သို့) အုပ်စု (ဥပမာ: 12, 34)</label>
+ <input type="text" id="betNumber" placeholder="00-99 သို့မဟုတ် 12,34">
+ </div>
+ <div class="input-group">
+ <label>ပမာဏ (ကျပ်)</label>
+ <input type="number" id="betAmount" placeholder="1000" onkeypress="handleEnter(event)">
+ </div>
+ <button onclick="addBet()">ထည့်မည် (+)</button>
+ <button class="btn-warning" onclick="addRBet()">အာ (R) ထည့်မည်</button>
+ </div>
+
+ <!-- Quick Group Buttons -->
+ <div class="quick-btns">
+ <button onclick="addGroup('apu')">အပူး (Apu)</button>
+ <button onclick="addGroup('power')">ပါဝါ (Power)</button>
+ <button onclick="addGroup('natkhat')">နက္ခတ် (Natkhat)</button>
+ <button onclick="addGroup('nyiko')">ညီကို (Nyi-Ko)</button>
+ <button onclick="addApa()">အပါ (ထိပ်/ပိတ်)</button>
+ <button onclick="addBreak()">ဘရိတ် (Break)</button>
+ </div>
+ </div>
+
+ <!-- Over Limit / Ka-Thee Panel -->
+ <div class="panel" id="kaPanel" style="display: none;">
+ <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+ <h3 class="text-warning" style="margin:0;">⚠️ Limit ကျော်နေသော ကာသီးစာရင်းများ</h3>
+ <button class="btn-secondary" onclick="copyKaList()">စာရင်း Copy ကူးမည်</button>
+ </div>
+ <div class="ka-list" id="kaList"></div>
+ </div>
+
+ <!-- History & Excel Panel -->
+ <div class="panel">
+ <div class="grid-header">
+ <h3 style="margin:0;">📑 စာရင်းသွင်းမှတ်တမ်း (Google Sheet Sync)</h3>
+ <div>
+ <button class="btn-success" onclick="exportSummaryExcel()">📊 00-99 စာရင်းချုပ် Excel ထုတ်ရန်</button>
+ </div>
+ </div>
+ <div class="table-wrapper">
+ <table>
+ <thead>
+ <tr>
+ <th>စဉ်</th>
+ <th>အချိန်</th>
+ <th>အမျိုးအစား</th>
+ <th>ဂဏန်း</th>
+ <th>တစ်ကွက်ပမာဏ</th>
+ <th>စုစုပေါင်းကျသင့်ငွေ</th>
+ <th>လုပ်ဆောင်ချက်</th>
+ </tr>
+ </thead>
+ <tbody id="historyTableBody">
+ <tr><td colspan="7" style="text-align:center; color:#64748b;">မှတ်တမ်း မရှိသေးပါ</td></tr>
+ </tbody>
+ </table>
+ </div>
+ </div>
+
+ <!-- 00 - 99 Live P&L Grid -->
+ <div class="panel">
+ <div class="grid-header">
+ <h3 style="margin:0;">📈 00 - 99 Live အရှုံး/အမြတ် ဇယား</h3>
+ <div>
+ <select id="sortFilter" onchange="renderGrid()">
+ <option value="num">ဂဏန်းအစဉ်လိုက် (00-99)</option>
+ <option value="risk">အရှုံးများရာမှ အနည်းသို့ (High Risk First)</option>
+ <option value="bet">ထိုးကြေးများရာမှ အနည်းသို့</option>
+ </select>
+ </div>
+ </div>
+ <div class="number-grid" id="numberGrid"></div>
+ </div>
+</div>
+
+<script>
+ // Google Sheet Web App URL
+ const SHEET_WEB_URL = "https://script.google.com/macros/s/AKfycbxGS_P-CmkujQ9g8-fdVDR0kfo4EnC0XUDpMY6Xk4r_4hOhWNTCmDgq0xGjcnF0xI687Q/exec";
+
+ // Initialize Data
+ let bets = JSON.parse(localStorage.getItem('2d_bets')) || Array(100).fill(0);
+ let historyLogs = JSON.parse(localStorage.getItem('2d_history')) || [];
+ let settings = JSON.parse(localStorage.getItem('2d_settings')) || {
+ payout: 85,
+ commission: 0,
+ limit: 50000
+ };
+
+ document.getElementById('payoutRate').value = settings.payout;
+ document.getElementById('commissionRate').value = settings.commission;
+ document.getElementById('maxLimit').value = settings.limit;
+
+ function saveData() {
+ localStorage.setItem('2d_bets', JSON.stringify(bets));
+ localStorage.setItem('2d_history', JSON.stringify(historyLogs));
+ localStorage.setItem('2d_settings', JSON.stringify(settings));
+ }
+
+ function updateSettings() {
+ settings.payout = parseFloat(document.getElementById('payoutRate').value) || 80;
+ settings.commission = parseFloat(document.getElementById('commissionRate').value) || 0;
+ settings.limit = parseFloat(document.getElementById('maxLimit').value) || 0;
+ saveData();
+ renderAll();
+ }
+
+ function handleEnter(e) {
+ if (e.key === 'Enter') addBet();
+ }
+
+ function formatNum(num) {
+ return Math.round(num).toLocaleString('en-US');
+ }
+
+ function padZero(num) {
+ return num.toString().padStart(2, '0');
+ }
+
+ function getCurrentTime() {
+ const now = new Date();
+ return now.toLocaleDateString('en-GB') + ' ' + now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+ }
+
+ // Send data to Google Sheets via Web App API
+ function sendToGoogleSheet(logData) {
+ fetch(SHEET_WEB_URL, {
+ method: "POST",
+ mode: "no-cors",
+ headers: { "Content-Type": "application/json" },
+ body: JSON.stringify(logData)
+ }).catch(err => console.error("Sheet Sync Error:", err));
+ }
+
+ function recordHistory(type, targetIndices, amount) {
+ if (targetIndices.length === 0) return;
+ const numStrings = targetIndices.map(i => padZero(i)).join(', ');
+ const totalEntryAmount = amount * targetIndices.length;
+ 
+ const logItem = {
+ id: Date.now() + Math.random(),
+ time: getCurrentTime(),
+ type: type,
+ numbers: numStrings,
+ indices: targetIndices,
+ amount: amount,
+ total: totalEntryAmount
+ };
+
+ historyLogs.unshift(logItem);
+ sendToGoogleSheet(logItem);
+ }
+
+ function deleteHistoryItem(id) {
+ const idx = historyLogs.findIndex(item => item.id === id);
+ if (idx === -1) return;
+ 
+ if (confirm("ဤစာရင်းကြောင်းကို ပြန်ဖျက်မှာ သေချာပါသလား?")) {
+ const item = historyLogs[idx];
+ item.indices.forEach(numIdx => {
+ bets[numIdx] -= item.amount;
+ if (bets[numIdx] < 0) bets[numIdx] = 0;
+ });
+ historyLogs.splice(idx, 1);
+ saveData();
+ renderAll();
+ }
+ }
+
+ function addBet() {
+ const rawNums = document.getElementById('betNumber').value.trim();
+ const amount = parseFloat(document.getElementById('betAmount').value);
+
+ if (!rawNums || isNaN(amount) || amount === 0) {
+ alert("ဂဏန်းနှင့် ပမာဏ မှန်ကန်စွာ ထည့်သွင်းပါ။");
+ return;
+ }
+
+ const numList = rawNums.split(/[\s,]+/);
+ let addedIndices = [];
+
+ numList.forEach(n => {
+ if (/^\d{1,2}$/.test(n)) {
+ let idx = parseInt(n, 10);
+ if (idx >= 0 && idx <= 99) {
+ bets[idx] += amount;
+ if (bets[idx] < 0) bets[idx] = 0;
+ addedIndices.push(idx);
+ }
+ }
+ });
+
+ if (addedIndices.length > 0) {
+ recordHistory('ဒဲ့ (Direct)', addedIndices, amount);
+ saveData();
+ renderAll();
+ }
+ document.getElementById('betNumber').value = '';
+ document.getElementById('betNumber').focus();
+ }
+
+ function addRBet() {
+ const rawNums = document.getElementById('betNumber').value.trim();
+ const amount = parseFloat(document.getElementById('betAmount').value);
+
+ if (!rawNums || isNaN(amount) || amount === 0) {
+ alert("ဂဏန်းနှင့် ပမာဏ မှန်ကန်စွာ ထည့်သွင်းပါ။");
+ return;
+ }
+
+ const numList = rawNums.split(/[\s,]+/);
+ let addedIndices = [];
+
+ numList.forEach(n => {
+ if (/^\d{1,2}$/.test(n)) {
+ let padded = padZero(parseInt(n, 10));
+ let rev = padded.split('').reverse().join('');
+ 
+ let idx1 = parseInt(padded, 10);
+ let idx2 = parseInt(rev, 10);
+
+ bets[idx1] += amount;
+ addedIndices.push(idx1);
+ if (idx1 !== idx2) {
+ bets[idx2] += amount;
+ addedIndices.push(idx2);
+ }
+ }
+ });
+
+ if (addedIndices.length > 0) {
+ recordHistory('အာ (R)', addedIndices, amount);
+ saveData();
+ renderAll();
+ }
+ document.getElementById('betNumber').value = '';
+ document.getElementById('betNumber').focus();
+ }
+
+ function addGroup(type) {
+ const amount = parseFloat(document.getElementById('betAmount').value);
+ if (isNaN(amount) || amount <= 0) {
+ alert("ပမာဏ (ကျပ်) အရင်ထည့်ပါ။");
+ return;
+ }
+
+ let targets = [];
+ let label = '';
+ if (type === 'apu') {
+ targets = [0, 11, 22, 33, 44, 55, 66, 77, 88, 99];
+ label = 'အပူး (Apu)';
+ } else if (type === 'power') {
+ targets = [5, 16, 27, 38, 49, 50, 61, 72, 83, 94];
+ label = 'ပါဝါ (Power)';
+ } else if (type === 'natkhat') {
+ targets = [7, 18, 24, 35, 42, 53, 69, 70, 81, 96];
+ label = 'နက္ခတ် (Natkhat)';
+ } else if (type === 'nyiko') {
+ targets = [1, 10, 12, 21, 23, 32, 34, 43, 45, 54, 56, 65, 67, 76, 78, 87, 89, 98, 9, 90];
+ label = 'ညီကို (Nyi-Ko)';
+ }
+
+ targets.forEach(idx => bets[idx] += amount);
+ recordHistory(label, targets, amount);
+ saveData();
+ renderAll();
+ }
+
+ function addApa() {
+ const digit = prompt("အပါထည့်လိုသော ဂဏန်းတစ်လုံး ရိုက်ထည့်ပါ (0 - 9):");
+ const amount = parseFloat(document.getElementById('betAmount').value);
+ if (digit === null || !/^[0-9]$/.test(digit) || isNaN(amount) || amount <= 0) {
+ alert("ဂဏန်းတစ်လုံး (0-9) နှင့် ပမာဏ မှန်ကန်စွာ ထည့်ပါ။");
+ return;
+ }
+
+ let targets = [];
+ for (let i = 0; i < 100; i++) {
+ let s = padZero(i);
+ if (s.includes(digit)) {
+ bets[i] += amount;
+ targets.push(i);
+ }
+ }
+ recordHistory(`${digit} အပါ`, targets, amount);
+ saveData();
+ renderAll();
+ }
+
+ function addBreak() {
+ const brk = prompt("ဘရိတ်ဂဏန်း ရိုက်ထည့်ပါ (0 - 9):");
+ const amount = parseFloat(document.getElementById('betAmount').value);
+ if (brk === null || !/^[0-9]$/.test(brk) || isNaN(amount) || amount <= 0) {
+ alert("ဘရိတ်ဂဏန်း (0-9) နှင့် ပမာဏ မှန်ကန်စွာ ထည့်ပါ။");
+ return;
+ }
+
+ const targetBrk = parseInt(brk, 10);
+ let targets = [];
+ for (let i = 0; i < 100; i++) {
+ let d1 = Math.floor(i / 10);
+ let d2 = i % 10;
+ if ((d1 + d2) % 10 === targetBrk) {
+ bets[i] += amount;
+ targets.push(i);
+ }
+ }
+ recordHistory(`${brk} ဘရိတ်`, targets, amount);
+ saveData();
+ renderAll();
+ }
+
+ function clearAllData() {
+ if (confirm("စာရင်းအားလုံးကို အပြီးတိုင် ဖျက်ပစ်မှာ သေချာပါသလား?")) {
+ bets = Array(100).fill(0);
+ historyLogs = [];
+ saveData();
+ renderAll();
+ }
+ }
+
+ function copyKaList() {
+ const text = document.getElementById('kaList').innerText;
+ navigator.clipboard.writeText(text).then(() => {
+ alert("ကာသီးစာရင်း Copy ကူးပြီးပါပြီ။");
+ });
+ }
+
+ function exportSummaryExcel() {
+ const totalIn = bets.reduce((a, b) => a + b, 0);
+ const netIn = totalIn * (1 - (settings.commission / 100));
+
+ let csvContent = "\uFEFF";
+ csvContent += "ဂဏန်း,စုစုပေါင်းထိုးကြေး (ကျပ်),လျော်ရမည့်ပမာဏ (ကျပ်),အသားတင် အရှုံး/အမြတ် (ကျပ်),အခြေအနေ\n";
+
+ bets.forEach((bet, idx) => {
+ const payout = bet * settings.payout;
+ const netPL = netIn - payout;
+ const status = (settings.limit > 0 && bet > settings.limit) ? "Limit ကျော် (ကာရန်)" : "ပုံမှန်";
+ const row = [
+ `"${padZero(idx)}"`,
+ bet,
+ payout,
+ Math.round(netPL),
+ `"${status}"`
+ ].join(",");
+ csvContent += row + "\n";
+ });
+
+ const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+ const url = URL.createObjectURL(blob);
+ const link = document.createElement("a");
+ link.setAttribute("href", url);
+ link.setAttribute("download", `2D_Summary_${new Date().toISOString().slice(0,10)}.csv`);
+ document.body.appendChild(link);
+ link.click();
+ document.body.removeChild(link);
+ }
+
+ function renderHistory() {
+ const tbody = document.getElementById('historyTableBody');
+ if (historyLogs.length === 0) {
+ tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#64748b;">မှတ်တမ်း မရှိသေးပါ</td></tr>';
+ return;
+ }
+
+ tbody.innerHTML = '';
+ historyLogs.forEach((item, index) => {
+ const tr = document.createElement('tr');
+ tr.innerHTML = `
+ <td>${historyLogs.length - index}</td>
+ <td style="font-size:12px; color:#94a3b8;">${item.time}</td>
+ <td>${item.type}</td>
+ <td style="font-weight:bold; color:#38bdf8;">${item.numbers}</td>
+ <td>${formatNum(item.amount)}</td>
+ <td style="font-weight:bold;">${formatNum(item.total)}</td>
+ <td><button class="btn-danger btn-sm" onclick="deleteHistoryItem(${item.id})">ဖျက်</button></td>
+ `;
+ tbody.appendChild(tr);
+ });
+ }
+
+ function renderGrid() {
+ const totalIn = bets.reduce((a, b) => a + b, 0);
+ const netIn = totalIn * (1 - (settings.commission / 100));
+
+ let gridData = bets.map((bet, idx) => {
+ const payout = bet * settings.payout;
+ const netPL = netIn - payout;
+ return {
+ idx: idx,
+ numStr: padZero(idx),
+ bet: bet,
+ netPL: netPL,
+ isOver: settings.limit > 0 && bet > settings.limit
+ };
+ });
+
+ const sortType = document.getElementById('sortFilter').value;
+ if (sortType === 'risk') {
+ gridData.sort((a, b) => a.netPL - b.netPL);
+ } else if (sortType === 'bet') {
+ gridData.sort((a, b) => b.bet - a.bet);
+ }
+
+ const gridEl = document.getElementById('numberGrid');
+ gridEl.innerHTML = '';
+
+ gridData.forEach(item => {
+ const box = document.createElement('div');
+ box.className = `num-box ${item.bet > 0 ? 'has-bet' : ''} ${item.isOver ? 'over-limit' : ''}`;
+ 
+ const plClass = item.netPL >= 0 ? 'text-profit' : 'text-loss';
+ const plSign = item.netPL > 0 ? '+' : '';
+
+ box.innerHTML = `
+ <div class="num-title">${item.numStr}</div>
+ <div class="num-bet">ထိုး: ${formatNum(item.bet)}</div>
+ <div class="num-pl ${plClass}">${plSign}${formatNum(item.netPL)}</div>
+ `;
+ gridEl.appendChild(box);
+ });
+ }
+
+ function renderAll() {
+ const totalIn = bets.reduce((a, b) => a + b, 0);
+ const netIn = totalIn * (1 - (settings.commission / 100));
+
+ let maxProfit = -Infinity;
+ let maxLoss = Infinity;
+ let kaItems = [];
+
+ bets.forEach((bet, idx) => {
+ const payout = bet * settings.payout;
+ const netPL = netIn - payout;
+
+ if (netPL > maxProfit) maxProfit = netPL;
+ if (netPL < maxLoss) maxLoss = netPL;
+
+ if (settings.limit > 0 && bet > settings.limit) {
+ kaItems.push(`${padZero(idx)} - ${formatNum(bet - settings.limit)}`);
+ }
+ });
+
+ document.getElementById('totalIn').innerText = formatNum(totalIn);
+ document.getElementById('netIn').innerText = formatNum(netIn);
+ document.getElementById('maxProfit').innerText = totalIn === 0 ? "0" : "+" + formatNum(maxProfit);
+ 
+ const maxLossEl = document.getElementById('maxLoss');
+ if (totalIn === 0) {
+ maxLossEl.innerText = "0";
+ } else if (maxLoss >= 0) {
+ maxLossEl.innerText = "+" + formatNum(maxLoss) + " (အရှုံးမရှိ)";
+ maxLossEl.className = "stat-value text-profit";
+ } else {
+ maxLossEl.innerText = formatNum(maxLoss);
+ maxLossEl.className = "stat-value text-loss";
+ }
+
+ const kaPanel = document.getElementById('kaPanel');
+ if (kaItems.length > 0) {
+ kaPanel.style.display = 'block';
+ document.getElementById('kaList').innerText = kaItems.join('\n');
+ } else {
+ kaPanel.style.display = 'none';
+ }
+
+ renderHistory();
+ renderGrid();
+ }
+
+ renderAll();
+</script>
+
+</body>
+</html>
