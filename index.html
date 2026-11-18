@@ -3,7 +3,7 @@
 <head>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>2D ဒိုင် စာရင်းကိုင် & Live အရှုံးအမြတ် တွက်စက် (Google Sheets Sync)</title>
+ <title>2D ဒိုင် စာရင်းကိုင် & Live အရှုံးအမြတ် တွက်စက် (Excel Import/Export)</title>
  <style>
  :root {
  --bg-color: #0f172a;
@@ -126,6 +126,7 @@
  .btn-warning { background: var(--warning); color: #000; }
  .btn-secondary { background: #475569; }
  .btn-success { background: var(--profit); color: #000; }
+ .btn-info { background: #0284c7; }
 
  /* Quick Buttons */
  .quick-btns {
@@ -253,7 +254,7 @@
 <body>
 
 <div class="container">
- <h2>📊 2D ဒိုင် Live အရှုံး/အမြတ် တွက်စက် (Google Sheets Sync)</h2>
+ <h2>📊 2D ဒိုင် Live အရှုံး/အမြတ် တွက်စက် (Excel Import/Export)</h2>
 
  <!-- Settings Panel -->
  <div class="panel">
@@ -330,12 +331,14 @@
  <div class="ka-list" id="kaList"></div>
  </div>
 
- <!-- History & Excel Panel -->
+ <!-- History & Excel Import/Export Panel -->
  <div class="panel">
  <div class="grid-header">
- <h3 style="margin:0;">📑 စာရင်းသွင်းမှတ်တမ်း (Google Sheet Sync)</h3>
- <div>
- <button class="btn-success" onclick="exportSummaryExcel()">📊 00-99 စာရင်းချုပ် Excel ထုတ်ရန်</button>
+ <h3 style="margin:0;">📑 စာရင်းသွင်းမှတ်တမ်း & Excel (Import / Export)</h3>
+ <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+ <button class="btn-success" onclick="exportHistoryExcel()">📥 Excel Export (ထုတ်ရန်)</button>
+ <button class="btn-info" onclick="document.getElementById('importFile').click()">📤 Excel Import (တင်ရန်)</button>
+ <input type="file" id="importFile" accept=".csv" style="display: none;" onchange="importHistoryExcel(event)">
  </div>
  </div>
  <div class="table-wrapper">
@@ -375,10 +378,8 @@
 </div>
 
 <script>
- // Google Sheet Web App URL
  const SHEET_WEB_URL = "https://script.google.com/macros/s/AKfycbxGS_P-CmkujQ9g8-fdVDR0kfo4EnC0XUDpMY6Xk4r_4hOhWNTCmDgq0xGjcnF0xI687Q/exec";
 
- // Initialize Data
  let bets = JSON.parse(localStorage.getItem('2d_bets')) || Array(100).fill(0);
  let historyLogs = JSON.parse(localStorage.getItem('2d_history')) || [];
  let settings = JSON.parse(localStorage.getItem('2d_settings')) || {
@@ -422,7 +423,6 @@
  return now.toLocaleDateString('en-GB') + ' ' + now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' });
  }
 
- // Send data to Google Sheets via Web App API
  function sendToGoogleSheet(logData) {
  fetch(SHEET_WEB_URL, {
  method: "POST",
@@ -626,23 +626,25 @@
  });
  }
 
- function exportSummaryExcel() {
- const totalIn = bets.reduce((a, b) => a + b, 0);
- const netIn = totalIn * (1 - (settings.commission / 100));
+ // EXPORT HISTORY TO CSV
+ function exportHistoryExcel() {
+ if (historyLogs.length === 0) {
+ alert("ထုတ်ယူရန် မှတ်တမ်း မရှိသေးပါ။");
+ return;
+ }
 
  let csvContent = "\uFEFF";
- csvContent += "ဂဏန်း,စုစုပေါင်းထိုးကြေး (ကျပ်),လျော်ရမည့်ပမာဏ (ကျပ်),အသားတင် အရှုံး/အမြတ် (ကျပ်),အခြေအနေ\n";
+ csvContent += "စဉ်,အချိန်,အမျိုးအစား,ဂဏန်းများ,တစ်ကွက်ပမာဏ,စုစုပေါင်းကျသင့်ငွေ\n";
 
- bets.forEach((bet, idx) => {
- const payout = bet * settings.payout;
- const netPL = netIn - payout;
- const status = (settings.limit > 0 && bet > settings.limit) ? "Limit ကျော် (ကာရန်)" : "ပုံမှန်";
+ const orderedLogs = [...historyLogs].reverse();
+ orderedLogs.forEach((item, index) => {
  const row = [
- `"${padZero(idx)}"`,
- bet,
- payout,
- Math.round(netPL),
- `"${status}"`
+ index + 1,
+ `"${item.time}"`,
+ `"${item.type}"`,
+ `"${item.numbers}"`,
+ item.amount,
+ item.total
  ].join(",");
  csvContent += row + "\n";
  });
@@ -651,10 +653,83 @@
  const url = URL.createObjectURL(blob);
  const link = document.createElement("a");
  link.setAttribute("href", url);
- link.setAttribute("download", `2D_Summary_${new Date().toISOString().slice(0,10)}.csv`);
+ link.setAttribute("download", `2D_History_${new Date().toISOString().slice(0,10)}.csv`);
  document.body.appendChild(link);
  link.click();
  document.body.removeChild(link);
+ }
+
+ // IMPORT HISTORY FROM CSV
+ function importHistoryExcel(event) {
+ const file = event.target.files[0];
+ if (!file) return;
+
+ const reader = new FileReader();
+ reader.onload = function(e) {
+ const text = e.target.result;
+ const lines = text.split('\n');
+ 
+ if (lines.length <= 1) {
+ alert("ဖိုင်ထဲတွင် အချက်အလက် မရှိပါ။");
+ return;
+ }
+
+ if (!confirm("လက်ရှိစာရင်းများအပေါ်တွင် ထပ်မံပေါင်းထည့်မည်/တင်သွင်းမည် သေချာပါသလား?")) {
+ event.target.value = '';
+ return;
+ }
+
+ let newHistoryLogs = [...historyLogs];
+ let newBets = [...bets];
+
+ // Skip header (i = 1)
+ for (let i = 1; i < lines.length; i++) {
+ const line = lines[i].trim();
+ if (!line) continue;
+
+ // Parse CSV row respecting quotes
+ const regex = /(?:,|\n|^)("(?:(((?!"").)*)?)")|([^,\n]+)/g;
+ let cols = [];
+ let match;
+ // Simple CSV split fallback if regex is complex
+ cols = line.split(',');
+ if (cols.length >= 6) {
+ const time = cols[1].replace(/"/g, '');
+ const type = cols[2].replace(/"/g, '');
+ const numbersStr = cols[3].replace(/"/g, '');
+ const amount = parseFloat(cols[4]) || 0;
+ const total = parseFloat(cols[5]) || 0;
+
+ const numList = numbersStr.split(', ');
+ let indices = [];
+ numList.forEach(nStr => {
+ const numInt = parseInt(nStr.trim(), 10);
+ if (!isNaN(numInt) && numInt >= 0 && numInt <= 99) {
+ newBets[numInt] += amount;
+ indices.push(numInt);
+ }
+ });
+
+ newHistoryLogs.unshift({
+ id: Date.now() + Math.random() + i,
+ time: time,
+ type: type,
+ numbers: numbersStr,
+ indices: indices,
+ amount: amount,
+ total: total
+ });
+ }
+ }
+
+ historyLogs = newHistoryLogs;
+ bets = newBets;
+ saveData();
+ renderAll();
+ alert("Excel ဖိုင်မှ စာရင်းများကို အောင်မြင်စွာ တင်သွင်းပြီးပါပြီ။");
+ event.target.value = '';
+ };
+ reader.readAsText(file, 'UTF-8');
  }
 
  function renderHistory() {
