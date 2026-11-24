@@ -3,7 +3,7 @@
 <head>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>2D ဒိုင် စာရင်းကိုင် & Live အရှုံးအမြတ် တွက်စက် (Excel Import/Export)</title>
+ <title>3D ဒိုင် စာရင်းကိုင် & Live အရှုံးအမြတ် တွက်စက်</title>
  <style>
  :root {
  --bg-color: #0f172a;
@@ -38,7 +38,6 @@
  color: #e2e8f0;
  }
 
- /* Dashboard Summary Cards */
  .summary-grid {
  display: grid;
  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -68,7 +67,6 @@
  .text-loss { color: var(--loss); }
  .text-warning { color: var(--warning); }
 
- /* Settings & Controls */
  .panel {
  background: var(--card-bg);
  padding: 15px;
@@ -104,7 +102,7 @@
  font-size: 15px;
  }
 
- input:focus {
+ input:focus, select:focus {
  outline: none;
  border-color: var(--accent);
  }
@@ -128,7 +126,6 @@
  .btn-success { background: var(--profit); color: #000; }
  .btn-info { background: #0284c7; }
 
- /* Quick Buttons */
  .quick-btns {
  display: flex;
  flex-wrap: wrap;
@@ -146,7 +143,6 @@
  background: var(--accent);
  }
 
- /* 00-99 Grid */
  .grid-header {
  display: flex;
  justify-content: space-between;
@@ -158,8 +154,11 @@
 
  .number-grid {
  display: grid;
- grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+ grid-template-columns: repeat(auto-fill, minmax(115px, 1fr));
  gap: 8px;
+ max-height: 550px;
+ overflow-y: auto;
+ padding-right: 4px;
  }
 
  .num-box {
@@ -169,7 +168,6 @@
  padding: 8px;
  text-align: center;
  position: relative;
- transition: transform 0.1s;
  }
 
  .num-box.has-bet {
@@ -178,13 +176,14 @@
 
  .num-box.over-limit {
  border: 2px solid var(--loss);
- background: rgba(239, 68, 68, 0.12);
+ background: rgba(239, 68, 68, 0.15);
  }
 
  .num-title {
  font-size: 18px;
  font-weight: bold;
  color: #f8fafc;
+ letter-spacing: 1px;
  }
 
  .num-bet {
@@ -198,7 +197,6 @@
  font-weight: bold;
  }
 
- /* Over Limit Modal / Section */
  .ka-list {
  background: #0f172a;
  padding: 12px;
@@ -210,7 +208,6 @@
  white-space: pre-wrap;
  }
 
- /* History Table */
  .table-wrapper {
  overflow-x: auto;
  max-height: 300px;
@@ -246,7 +243,7 @@
 
  @media (max-width: 600px) {
  .number-grid {
- grid-template-columns: repeat(4, 1fr);
+ grid-template-columns: repeat(3, 1fr);
  }
  }
  </style>
@@ -254,22 +251,26 @@
 <body>
 
 <div class="container">
- <h2>📊 2D ဒိုင် Live အရှုံး/အမြတ် တွက်စက် (Excel Import/Export)</h2>
+ <h2>🎲 3D ဒိုင် Live အရှုံး/အမြတ် တွက်စက် (000 - 999)</h2>
 
  <!-- Settings Panel -->
  <div class="panel">
  <div class="settings-row">
  <div class="input-group">
- <label>လျော်ဆ (ဥပမာ- 80 / 85 / 90)</label>
- <input type="number" id="payoutRate" value="85" onchange="updateSettings()">
+ <label>ဒဲ့ လျော်ဆ (ဥပမာ- 500 / 550)</label>
+ <input type="number" id="payoutRate" value="500" onchange="updateSettings()">
+ </div>
+ <div class="input-group">
+ <label>တွတ် လျော်ဆ (ဥပမာ- 10 / 0)</label>
+ <input type="number" id="twatRate" value="10" onchange="updateSettings()">
  </div>
  <div class="input-group">
  <label>ကော်မရှင် (%)</label>
  <input type="number" id="commissionRate" value="0" onchange="updateSettings()">
  </div>
  <div class="input-group">
- <label>တစ်ကွက် အများဆုံးခံနိုင်ရည် (Limit)</label>
- <input type="number" id="maxLimit" value="50000" onchange="updateSettings()">
+ <label>တစ်ကွက် Limit (ကာသီးမှတ်)</label>
+ <input type="number" id="maxLimit" value="10000" onchange="updateSettings()">
  </div>
  <button class="btn-danger" onclick="clearAllData()">စာရင်းအားလုံးဖျက်မည်</button>
  </div>
@@ -297,28 +298,27 @@
 
  <!-- Bet Entry Panel -->
  <div class="panel">
- <h3>✍️ စာရင်းသွင်းရန်</h3>
+ <h3>✍️ 3D စာရင်းသွင်းရန်</h3>
  <div class="settings-row">
  <div class="input-group">
- <label>ဂဏန်း (သို့) အုပ်စု (ဥပမာ: 12, 34)</label>
- <input type="text" id="betNumber" placeholder="00-99 သို့မဟုတ် 12,34">
+ <label>ဂဏန်း (ဥပမာ: 123, 456)</label>
+ <input type="text" id="betNumber" placeholder="000-999 သို့မဟုတ် 123,456">
  </div>
  <div class="input-group">
  <label>ပမာဏ (ကျပ်)</label>
- <input type="number" id="betAmount" placeholder="1000" onkeypress="handleEnter(event)">
+ <input type="number" id="betAmount" placeholder="500" onkeypress="handleEnter(event)">
  </div>
- <button onclick="addBet()">ထည့်မည် (+)</button>
- <button class="btn-warning" onclick="addRBet()">အာ (R) ထည့်မည်</button>
+ <button onclick="addBet()">ဒဲ့ ထည့်မည် (+)</button>
+ <button class="btn-warning" onclick="addRBet()">ပါတ်လည် (R/Box) ထည့်မည်</button>
  </div>
 
  <!-- Quick Group Buttons -->
  <div class="quick-btns">
- <button onclick="addGroup('apu')">အပူး (Apu)</button>
- <button onclick="addGroup('power')">ပါဝါ (Power)</button>
- <button onclick="addGroup('natkhat')">နက္ခတ် (Natkhat)</button>
- <button onclick="addGroup('nyiko')">ညီကို (Nyi-Ko)</button>
- <button onclick="addApa()">အပါ (ထိပ်/ပိတ်)</button>
- <button onclick="addBreak()">ဘရိတ် (Break)</button>
+ <button onclick="addGroup('triple')">အပူး (000-999)</button>
+ <button onclick="addGroup('nyiko')">ညီကို (012, 123...)</button>
+ <button onclick="addFrontBack('front')">ထိပ်စီး (1xx)</button>
+ <button onclick="addFrontBack('back')">နောက်ပိတ် (xx1)</button>
+ <button onclick="addBreak()">ဘရိတ် (Break 0-9)</button>
  </div>
  </div>
 
@@ -334,10 +334,10 @@
  <!-- History & Excel Import/Export Panel -->
  <div class="panel">
  <div class="grid-header">
- <h3 style="margin:0;">📑 စာရင်းသွင်းမှတ်တမ်း & Excel (Import / Export)</h3>
+ <h3 style="margin:0;">📑 စာရင်းသွင်းမှတ်တမ်း & CSV (Import / Export)</h3>
  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
- <button class="btn-success" onclick="exportHistoryExcel()">📥 Excel Export (ထုတ်ရန်)</button>
- <button class="btn-info" onclick="document.getElementById('importFile').click()">📤 Excel Import (တင်ရန်)</button>
+ <button class="btn-success" onclick="exportHistoryExcel()">📥 CSV Export (ထုတ်ရန်)</button>
+ <button class="btn-info" onclick="document.getElementById('importFile').click()">📤 CSV Import (တင်ရန်)</button>
  <input type="file" id="importFile" accept=".csv" style="display: none;" onchange="importHistoryExcel(event)">
  </div>
  </div>
@@ -361,15 +361,21 @@
  </div>
  </div>
 
- <!-- 00 - 99 Live P&L Grid -->
+ <!-- 000 - 999 Live P&L Grid -->
  <div class="panel">
  <div class="grid-header">
- <h3 style="margin:0;">📈 00 - 99 Live အရှုံး/အမြတ် ဇယား</h3>
- <div>
- <select id="sortFilter" onchange="renderGrid()">
- <option value="num">ဂဏန်းအစဉ်လိုက် (00-99)</option>
- <option value="risk">အရှုံးများရာမှ အနည်းသို့ (High Risk First)</option>
+ <h3 style="margin:0;">📈 000 - 999 Live အရှုံး/အမြတ် ဇယား</h3>
+ <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+ <input type="text" id="searchBox" placeholder="ဂဏန်းရှာရန် (ဥပမာ 123)" onkeyup="renderGrid()" style="width: 170px; padding: 6px 10px; font-size: 13px;">
+ <select id="viewFilter" onchange="renderGrid()" style="padding: 6px 10px; font-size: 13px;">
+ <option value="active">ထိုးထားသော ဂဏန်းများသာ</option>
+ <option value="over">Limit ကျော်ဂဏန်းများသာ</option>
+ <option value="all">အကွက် ၁,၀၀၀ လုံး (000-999)</option>
+ </select>
+ <select id="sortFilter" onchange="renderGrid()" style="padding: 6px 10px; font-size: 13px;">
+ <option value="risk">အရှုံးများရာမှ အနည်းသို့</option>
  <option value="bet">ထိုးကြေးများရာမှ အနည်းသို့</option>
+ <option value="num">ဂဏန်းအစဉ်လိုက် (000-999)</option>
  </select>
  </div>
  </div>
@@ -380,26 +386,29 @@
 <script>
  const SHEET_WEB_URL = "https://script.google.com/macros/s/AKfycbxGS_P-CmkujQ9g8-fdVDR0kfo4EnC0XUDpMY6Xk4r_4hOhWNTCmDgq0xGjcnF0xI687Q/exec";
 
- let bets = JSON.parse(localStorage.getItem('2d_bets')) || Array(100).fill(0);
- let historyLogs = JSON.parse(localStorage.getItem('2d_history')) || [];
- let settings = JSON.parse(localStorage.getItem('2d_settings')) || {
- payout: 85,
+ let bets = JSON.parse(localStorage.getItem('3d_bets')) || Array(1000).fill(0);
+ let historyLogs = JSON.parse(localStorage.getItem('3d_history')) || [];
+ let settings = JSON.parse(localStorage.getItem('3d_settings')) || {
+ payout: 500,
+ twat: 10,
  commission: 0,
- limit: 50000
+ limit: 10000
  };
 
  document.getElementById('payoutRate').value = settings.payout;
+ document.getElementById('twatRate').value = settings.twat;
  document.getElementById('commissionRate').value = settings.commission;
  document.getElementById('maxLimit').value = settings.limit;
 
  function saveData() {
- localStorage.setItem('2d_bets', JSON.stringify(bets));
- localStorage.setItem('2d_history', JSON.stringify(historyLogs));
- localStorage.setItem('2d_settings', JSON.stringify(settings));
+ localStorage.setItem('3d_bets', JSON.stringify(bets));
+ localStorage.setItem('3d_history', JSON.stringify(historyLogs));
+ localStorage.setItem('3d_settings', JSON.stringify(settings));
  }
 
  function updateSettings() {
- settings.payout = parseFloat(document.getElementById('payoutRate').value) || 80;
+ settings.payout = parseFloat(document.getElementById('payoutRate').value) || 500;
+ settings.twat = parseFloat(document.getElementById('twatRate').value) || 0;
  settings.commission = parseFloat(document.getElementById('commissionRate').value) || 0;
  settings.limit = parseFloat(document.getElementById('maxLimit').value) || 0;
  saveData();
@@ -414,8 +423,8 @@
  return Math.round(num).toLocaleString('en-US');
  }
 
- function padZero(num) {
- return num.toString().padStart(2, '0');
+ function padZero3(num) {
+ return num.toString().padStart(3, '0');
  }
 
  function getCurrentTime() {
@@ -434,7 +443,10 @@
 
  function recordHistory(type, targetIndices, amount) {
  if (targetIndices.length === 0) return;
- const numStrings = targetIndices.map(i => padZero(i)).join(', ');
+ const numStrings = targetIndices.length <= 15 
+ ? targetIndices.map(i => padZero3(i)).join(', ')
+ : `${targetIndices.slice(0, 5).map(i => padZero3(i)).join(', ')} ... (${targetIndices.length} ကွက်)`;
+ 
  const totalEntryAmount = amount * targetIndices.length;
  
  const logItem = {
@@ -442,13 +454,21 @@
  time: getCurrentTime(),
  type: type,
  numbers: numStrings,
+ fullNumbers: targetIndices.map(i => padZero3(i)).join(', '),
  indices: targetIndices,
  amount: amount,
  total: totalEntryAmount
  };
 
  historyLogs.unshift(logItem);
- sendToGoogleSheet(logItem);
+ sendToGoogleSheet({
+ time: logItem.time,
+ type: logItem.type,
+ numbers: logItem.fullNumbers,
+ amount: logItem.amount,
+ total: logItem.total,
+ count: targetIndices.length
+ });
  }
 
  function deleteHistoryItem(id) {
@@ -467,12 +487,13 @@
  }
  }
 
+ // 3D Direct Bet
  function addBet() {
  const rawNums = document.getElementById('betNumber').value.trim();
  const amount = parseFloat(document.getElementById('betAmount').value);
 
  if (!rawNums || isNaN(amount) || amount === 0) {
- alert("ဂဏန်းနှင့် ပမာဏ မှန်ကန်စွာ ထည့်သွင်းပါ။");
+ alert("ဂဏန်း ၃ လုံးနှင့် ပမာဏ မှန်ကန်စွာ ထည့်သွင်းပါ။");
  return;
  }
 
@@ -480,9 +501,9 @@
  let addedIndices = [];
 
  numList.forEach(n => {
- if (/^\d{1,2}$/.test(n)) {
+ if (/^\d{1,3}$/.test(n)) {
  let idx = parseInt(n, 10);
- if (idx >= 0 && idx <= 99) {
+ if (idx >= 0 && idx <= 999) {
  bets[idx] += amount;
  if (bets[idx] < 0) bets[idx] = 0;
  addedIndices.push(idx);
@@ -491,12 +512,28 @@
  });
 
  if (addedIndices.length > 0) {
- recordHistory('ဒဲ့ (Direct)', addedIndices, amount);
+ recordHistory('3D ဒဲ့ (Direct)', addedIndices, amount);
  saveData();
  renderAll();
  }
  document.getElementById('betNumber').value = '';
  document.getElementById('betNumber').focus();
+ }
+
+ // 3D Permutations (R / Box)
+ function getPermutations(str) {
+ const results = new Set();
+ const arr = str.split('');
+ for (let i = 0; i < 3; i++) {
+ for (let j = 0; j < 3; j++) {
+ for (let k = 0; k < 3; k++) {
+ if (i !== j && j !== k && i !== k) {
+ results.add(arr[i] + arr[j] + arr[k]);
+ }
+ }
+ }
+ }
+ return Array.from(results).map(s => parseInt(s, 10));
  }
 
  function addRBet() {
@@ -504,7 +541,7 @@
  const amount = parseFloat(document.getElementById('betAmount').value);
 
  if (!rawNums || isNaN(amount) || amount === 0) {
- alert("ဂဏန်းနှင့် ပမာဏ မှန်ကန်စွာ ထည့်သွင်းပါ။");
+ alert("ဂဏန်း ၃ လုံးနှင့် ပမာဏ မှန်ကန်စွာ ထည့်သွင်းပါ။");
  return;
  }
 
@@ -512,24 +549,18 @@
  let addedIndices = [];
 
  numList.forEach(n => {
- if (/^\d{1,2}$/.test(n)) {
- let padded = padZero(parseInt(n, 10));
- let rev = padded.split('').reverse().join('');
- 
- let idx1 = parseInt(padded, 10);
- let idx2 = parseInt(rev, 10);
-
- bets[idx1] += amount;
- addedIndices.push(idx1);
- if (idx1 !== idx2) {
- bets[idx2] += amount;
- addedIndices.push(idx2);
- }
+ if (/^\d{1,3}$/.test(n)) {
+ let padded = padZero3(parseInt(n, 10));
+ let perms = getPermutations(padded);
+ perms.forEach(idx => {
+ bets[idx] += amount;
+ addedIndices.push(idx);
+ });
  }
  });
 
  if (addedIndices.length > 0) {
- recordHistory('အာ (R)', addedIndices, amount);
+ recordHistory('3D ပါတ်လည် (R/Box)', addedIndices, amount);
  saveData();
  renderAll();
  }
@@ -537,6 +568,7 @@
  document.getElementById('betNumber').focus();
  }
 
+ // Quick Groups
  function addGroup(type) {
  const amount = parseFloat(document.getElementById('betAmount').value);
  if (isNaN(amount) || amount <= 0) {
@@ -546,18 +578,12 @@
 
  let targets = [];
  let label = '';
- if (type === 'apu') {
- targets = [0, 11, 22, 33, 44, 55, 66, 77, 88, 99];
- label = 'အပူး (Apu)';
- } else if (type === 'power') {
- targets = [5, 16, 27, 38, 49, 50, 61, 72, 83, 94];
- label = 'ပါဝါ (Power)';
- } else if (type === 'natkhat') {
- targets = [7, 18, 24, 35, 42, 53, 69, 70, 81, 96];
- label = 'နက္ခတ် (Natkhat)';
+ if (type === 'triple') {
+ targets = [0, 111, 222, 333, 444, 555, 666, 777, 888, 999];
+ label = '3D အပူး (Triple)';
  } else if (type === 'nyiko') {
- targets = [1, 10, 12, 21, 23, 32, 34, 43, 45, 54, 56, 65, 67, 76, 78, 87, 89, 98, 9, 90];
- label = 'ညီကို (Nyi-Ko)';
+ targets = [12, 123, 234, 345, 456, 567, 678, 789, 890, 901, 210, 321, 432, 543, 654, 765, 876, 987, 98, 109];
+ label = '3D ညီကို (Nyi-Ko)';
  }
 
  targets.forEach(idx => bets[idx] += amount);
@@ -566,8 +592,8 @@
  renderAll();
  }
 
- function addApa() {
- const digit = prompt("အပါထည့်လိုသော ဂဏန်းတစ်လုံး ရိုက်ထည့်ပါ (0 - 9):");
+ function addFrontBack(pos) {
+ const digit = prompt(pos === 'front' ? "ထိပ်စီးဂဏန်း ရိုက်ထည့်ပါ (0 - 9):" : "နောက်ပိတ်ဂဏန်း ရိုက်ထည့်ပါ (0 - 9):");
  const amount = parseFloat(document.getElementById('betAmount').value);
  if (digit === null || !/^[0-9]$/.test(digit) || isNaN(amount) || amount <= 0) {
  alert("ဂဏန်းတစ်လုံး (0-9) နှင့် ပမာဏ မှန်ကန်စွာ ထည့်ပါ။");
@@ -575,20 +601,20 @@
  }
 
  let targets = [];
- for (let i = 0; i < 100; i++) {
- let s = padZero(i);
- if (s.includes(digit)) {
+ for (let i = 0; i < 1000; i++) {
+ let s = padZero3(i);
+ if ((pos === 'front' && s[0] === digit) || (pos === 'back' && s[2] === digit)) {
  bets[i] += amount;
  targets.push(i);
  }
  }
- recordHistory(`${digit} အပါ`, targets, amount);
+ recordHistory(pos === 'front' ? `${digit} ထိပ်စီး` : `${digit} နောက်ပိတ်`, targets, amount);
  saveData();
  renderAll();
  }
 
  function addBreak() {
- const brk = prompt("ဘရိတ်ဂဏန်း ရိုက်ထည့်ပါ (0 - 9):");
+ const brk = prompt("3D ဘရိတ်ဂဏန်း ရိုက်ထည့်ပါ (0 - 9):");
  const amount = parseFloat(document.getElementById('betAmount').value);
  if (brk === null || !/^[0-9]$/.test(brk) || isNaN(amount) || amount <= 0) {
  alert("ဘရိတ်ဂဏန်း (0-9) နှင့် ပမာဏ မှန်ကန်စွာ ထည့်ပါ။");
@@ -597,10 +623,11 @@
 
  const targetBrk = parseInt(brk, 10);
  let targets = [];
- for (let i = 0; i < 100; i++) {
- let d1 = Math.floor(i / 10);
- let d2 = i % 10;
- if ((d1 + d2) % 10 === targetBrk) {
+ for (let i = 0; i < 1000; i++) {
+ let d1 = Math.floor(i / 100);
+ let d2 = Math.floor((i % 100) / 10);
+ let d3 = i % 10;
+ if ((d1 + d2 + d3) % 10 === targetBrk) {
  bets[i] += amount;
  targets.push(i);
  }
@@ -611,8 +638,8 @@
  }
 
  function clearAllData() {
- if (confirm("စာရင်းအားလုံးကို အပြီးတိုင် ဖျက်ပစ်မှာ သေချာပါသလား?")) {
- bets = Array(100).fill(0);
+ if (confirm("3D စာရင်းအားလုံးကို အပြီးတိုင် ဖျက်ပစ်မှာ သေချာပါသလား?")) {
+ bets = Array(1000).fill(0);
  historyLogs = [];
  saveData();
  renderAll();
@@ -626,7 +653,16 @@
  });
  }
 
- // EXPORT HISTORY TO CSV
+ // Calculate Twat (Adjacent +/- 1) Payout for a given winning index
+ function calculateTotalPayout(winIdx) {
+ const directPayout = bets[winIdx] * settings.payout;
+ let twatBet = 0;
+ if (winIdx > 0) twatBet += bets[winIdx - 1];
+ if (winIdx < 999) twatBet += bets[winIdx + 1];
+ const twatPayout = twatBet * settings.twat;
+ return directPayout + twatPayout;
+ }
+
  function exportHistoryExcel() {
  if (historyLogs.length === 0) {
  alert("ထုတ်ယူရန် မှတ်တမ်း မရှိသေးပါ။");
@@ -634,7 +670,7 @@
  }
 
  let csvContent = "\uFEFF";
- csvContent += "စဉ်,အချိန်,အမျိုးအစား,ဂဏန်းများ,တစ်ကွက်ပမာဏ,စုစုပေါင်းကျသင့်ငွေ\n";
+ csvContent += "စဉ်,အချိန်,အမျိုးအစား,ဂဏန်းများ,အကွက်အရေအတွက်,တစ်ကွက်ပမာဏ,စုစုပေါင်းကျသင့်ငွေ\n";
 
  const orderedLogs = [...historyLogs].reverse();
  orderedLogs.forEach((item, index) => {
@@ -642,7 +678,8 @@
  index + 1,
  `"${item.time}"`,
  `"${item.type}"`,
- `"${item.numbers}"`,
+ `"${item.fullNumbers || item.numbers}"`,
+ item.indices.length,
  item.amount,
  item.total
  ].join(",");
@@ -653,13 +690,12 @@
  const url = URL.createObjectURL(blob);
  const link = document.createElement("a");
  link.setAttribute("href", url);
- link.setAttribute("download", `2D_History_${new Date().toISOString().slice(0,10)}.csv`);
+ link.setAttribute("download", `3D_History_${new Date().toISOString().slice(0,10)}.csv`);
  document.body.appendChild(link);
  link.click();
  document.body.removeChild(link);
  }
 
- // IMPORT HISTORY FROM CSV
  function importHistoryExcel(event) {
  const file = event.target.files[0];
  if (!file) return;
@@ -668,53 +704,41 @@
  reader.onload = function(e) {
  const text = e.target.result;
  const lines = text.split('\n');
- 
- if (lines.length <= 1) {
- alert("ဖိုင်ထဲတွင် အချက်အလက် မရှိပါ။");
- return;
- }
+ if (lines.length <= 1) return;
 
- if (!confirm("လက်ရှိစာရင်းများအပေါ်တွင် ထပ်မံပေါင်းထည့်မည်/တင်သွင်းမည် သေချာပါသလား?")) {
+ if (!confirm("လက်ရှိစာရင်းများအပေါ်တွင် ထပ်မံပေါင်းထည့်မည် သေချာပါသလား?")) {
  event.target.value = '';
  return;
  }
 
- let newHistoryLogs = [...historyLogs];
- let newBets = [...bets];
-
- // Skip header (i = 1)
  for (let i = 1; i < lines.length; i++) {
  const line = lines[i].trim();
  if (!line) continue;
-
- // Parse CSV row respecting quotes
- const regex = /(?:,|\n|^)("(?:(((?!"").)*)?)")|([^,\n]+)/g;
- let cols = [];
- let match;
- // Simple CSV split fallback if regex is complex
- cols = line.split(',');
- if (cols.length >= 6) {
- const time = cols[1].replace(/"/g, '');
- const type = cols[2].replace(/"/g, '');
- const numbersStr = cols[3].replace(/"/g, '');
- const amount = parseFloat(cols[4]) || 0;
- const total = parseFloat(cols[5]) || 0;
+ // Match quoted strings and unquoted numbers
+ const matches = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+ if (matches && matches.length >= 7) {
+ const time = matches[1].replace(/"/g, '');
+ const type = matches[2].replace(/"/g, '');
+ const numbersStr = matches[3].replace(/"/g, '');
+ const amount = parseFloat(matches[5]) || 0;
+ const total = parseFloat(matches[6]) || 0;
 
  const numList = numbersStr.split(', ');
  let indices = [];
  numList.forEach(nStr => {
  const numInt = parseInt(nStr.trim(), 10);
- if (!isNaN(numInt) && numInt >= 0 && numInt <= 99) {
- newBets[numInt] += amount;
+ if (!isNaN(numInt) && numInt >= 0 && numInt <= 999) {
+ bets[numInt] += amount;
  indices.push(numInt);
  }
  });
 
- newHistoryLogs.unshift({
+ historyLogs.unshift({
  id: Date.now() + Math.random() + i,
  time: time,
  type: type,
- numbers: numbersStr,
+ numbers: indices.length <= 15 ? numbersStr : `${indices.slice(0,5).map(x=>padZero3(x)).join(', ')} ... (${indices.length} ကွက်)`,
+ fullNumbers: numbersStr,
  indices: indices,
  amount: amount,
  total: total
@@ -722,11 +746,9 @@
  }
  }
 
- historyLogs = newHistoryLogs;
- bets = newBets;
  saveData();
  renderAll();
- alert("Excel ဖိုင်မှ စာရင်းများကို အောင်မြင်စွာ တင်သွင်းပြီးပါပြီ။");
+ alert("CSV ဖိုင်မှ 3D စာရင်းများကို အောင်မြင်စွာ တင်သွင်းပြီးပါပြီ။");
  event.target.value = '';
  };
  reader.readAsText(file, 'UTF-8');
@@ -758,20 +780,34 @@
  function renderGrid() {
  const totalIn = bets.reduce((a, b) => a + b, 0);
  const netIn = totalIn * (1 - (settings.commission / 100));
+ const searchVal = document.getElementById('searchBox').value.trim();
+ const viewFilter = document.getElementById('viewFilter').value;
+ const sortType = document.getElementById('sortFilter').value;
 
- let gridData = bets.map((bet, idx) => {
- const payout = bet * settings.payout;
- const netPL = netIn - payout;
- return {
+ let gridData = [];
+ for (let idx = 0; idx < 1000; idx++) {
+ const numStr = padZero3(idx);
+ const bet = bets[idx];
+ const isOver = settings.limit > 0 && bet > settings.limit;
+
+ if (searchVal && !numStr.includes(searchVal)) continue;
+ if (!searchVal) {
+ if (viewFilter === 'active' && bet === 0) continue;
+ if (viewFilter === 'over' && !isOver) continue;
+ }
+
+ const totalPayout = calculateTotalPayout(idx);
+ const netPL = netIn - totalPayout;
+
+ gridData.push({
  idx: idx,
- numStr: padZero(idx),
+ numStr: numStr,
  bet: bet,
  netPL: netPL,
- isOver: settings.limit > 0 && bet > settings.limit
- };
+ isOver: isOver
  });
+ }
 
- const sortType = document.getElementById('sortFilter').value;
  if (sortType === 'risk') {
  gridData.sort((a, b) => a.netPL - b.netPL);
  } else if (sortType === 'bet') {
@@ -781,10 +817,14 @@
  const gridEl = document.getElementById('numberGrid');
  gridEl.innerHTML = '';
 
+ if (gridData.length === 0) {
+ gridEl.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#64748b; padding:20px;">ပြသရန် ဂဏန်းမရှိသေးပါ (စာရင်းအသစ်ထည့်ပါ သို့မဟုတ် Filter ပြောင်းကြည့်ပါ)</div>';
+ return;
+ }
+
  gridData.forEach(item => {
  const box = document.createElement('div');
  box.className = `num-box ${item.bet > 0 ? 'has-bet' : ''} ${item.isOver ? 'over-limit' : ''}`;
- 
  const plClass = item.netPL >= 0 ? 'text-profit' : 'text-loss';
  const plSign = item.netPL > 0 ? '+' : '';
 
@@ -805,17 +845,17 @@
  let maxLoss = Infinity;
  let kaItems = [];
 
- bets.forEach((bet, idx) => {
- const payout = bet * settings.payout;
- const netPL = netIn - payout;
+ for (let idx = 0; idx < 1000; idx++) {
+ const totalPayout = calculateTotalPayout(idx);
+ const netPL = netIn - totalPayout;
 
  if (netPL > maxProfit) maxProfit = netPL;
  if (netPL < maxLoss) maxLoss = netPL;
 
- if (settings.limit > 0 && bet > settings.limit) {
- kaItems.push(`${padZero(idx)} - ${formatNum(bet - settings.limit)}`);
+ if (settings.limit > 0 && bets[idx] > settings.limit) {
+ kaItems.push(`${padZero3(idx)} - ${formatNum(bets[idx] - settings.limit)}`);
  }
- });
+ }
 
  document.getElementById('totalIn').innerText = formatNum(totalIn);
  document.getElementById('netIn').innerText = formatNum(netIn);
